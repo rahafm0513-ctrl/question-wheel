@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>عجلة الأسئلة</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  /* Layout idea: a formal evening stage in deep navy and champagne gold. A gold-rimmed wheel of alternating navy and ivory on one side, a large question card with timer and answer reveal on the other. Single theme by choice. */
+  :root {
+    color-scheme: dark;
+    --bg: #0a1230;
+    --bg-raise: #121c44;
+    --bg-glow: #213878;
+    --gold: #d9b45f;
+    --gold-deep: #9a7424;
+    --cream: #f5ecd7;
+    --cream-dim: rgba(245, 236, 215, .72);
+    --line: rgba(217, 180, 95, .28);
+    --emerald: #182a63;
+    --ivory: #efe3c4;
+    --alert: #e2725b;
+    --font-display: "Cairo", "Segoe UI", Tahoma, sans-serif;
+    --font-body: "Cairo", "Segoe UI", Tahoma, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background:
+      radial-gradient(70% 60% at 28% 50%, var(--bg-glow) 0%, transparent 72%),
+      var(--bg);
+    color: var(--cream);
+    font-family: var(--font-body);
+    font-size: 19px;
+    line-height: 1.7;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  main {
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 30px 20px 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+  }
+  header { text-align: center; }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.3rem;
+    color: var(--gold);
+  }
+  .eyebrow::before, .eyebrow::after { content: ""; width: 54px; height: 1px; background: var(--gold); opacity: .7; }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: clamp(2.8rem, 8.5vw, 5rem);
+    line-height: 1.4;
+    margin: 0;
+    text-wrap: balance;
+    background: linear-gradient(180deg, #f9edc4 15%, var(--gold) 60%, var(--gold-deep) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 4px 0 rgba(0, 0, 0, .35));
+  }
+  .stage {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 36px 56px;
+  }
+  .panel {
+    flex: 1 1 360px;
+    max-width: 540px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: stretch;
+  }
+  .wheel-wrap {
+    flex: 0 1 470px;
+    width: min(470px, 100%);
+    aspect-ratio: 1;
+    position: relative;
+    filter: drop-shadow(0 22px 40px rgba(0, 0, 0, .5));
+  }
+  .wheel-wrap > svg.layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    direction: ltr;
+  }
+  #wheel {
+    transition: transform 5s cubic-bezier(.1, .75, .1, 1);
+    will-change: transform;
+    cursor: pointer;
+  }
+  #wheel text {
+    font-family: var(--font-body);
+    font-weight: 900;
+    font-size: 25px;
+  }
+  #wheel .used path { filter: brightness(.5); }
+  #wheel .used text { opacity: .45; }
+  .bulb { fill: #fbf1cf; }
+  .bulb.b { fill: var(--gold-deep); }
+  .spinning .bulb { animation: blink .32s steps(1) infinite; }
+  .spinning .bulb.b { animation-delay: .16s; }
+  @keyframes blink { 0% { fill: #fbf1cf; } 50% { fill: var(--gold-deep); } }
+  .pointer {
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    width: 44px;
+    height: 52px;
+    margin-left: -22px;
+    z-index: 3;
+    transform-origin: 50% 12%;
+    filter: drop-shadow(0 4px 4px rgba(0, 0, 0, .45));
+  }
+  .spinning .pointer { animation: tick .14s ease-in-out infinite alternate; }
+  @keyframes tick { from { transform: rotate(-9deg); } to { transform: rotate(7deg); } }
+
+  button { font-family: inherit; }
+  .spin {
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 1.7rem;
+    line-height: 1.5;
+    color: #2b1f05;
+    background: linear-gradient(180deg, #f3dea0, var(--gold) 55%, #b88e39);
+    border: 0;
+    border-radius: 14px;
+    padding: 10px 40px 12px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #6b4f16, 0 18px 30px rgba(0, 0, 0, .35);
+    transition: transform .1s, box-shadow .1s, filter .2s;
+  }
+  .spin:hover { filter: brightness(1.06); }
+  .spin:active { transform: translateY(5px); box-shadow: 0 1px 0 #6b4f16, 0 8px 14px rgba(0, 0, 0, .35); }
+  .spin:disabled { filter: saturate(.4) brightness(.8); cursor: default; transform: none; }
+  button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible {
+    outline: 3px solid var(--cream);
+    outline-offset: 3px;
+  }
+  .card {
+    border-radius: 16px;
+    padding: 24px 28px 26px;
+    background: var(--bg-raise);
+    border: 1px solid var(--line);
+    border-top: 4px solid var(--gold);
+    min-height: 250px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, .3);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .card.pop { animation: pop .45s cubic-bezier(.2, 1.5, .4, 1); }
+  @keyframes pop { from { transform: scale(.94); } to { transform: scale(1); } }
+  .card-top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .badge {
+    display: inline-grid;
+    place-items: center;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    font-weight: 900;
+    font-size: 1.7rem;
+    line-height: 1;
+    color: var(--bg);
+    background: var(--gold);
+    flex: none;
+  }
+  .timer { display: flex; align-items: center; gap: 12px; }
+  .timer[hidden] { display: none; }
+  .ring { width: 64px; height: 64px; position: relative; flex: none; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring circle { fill: none; stroke-width: 5; }
+  .ring .track { stroke: var(--line); }
+  .ring .bar { stroke: var(--gold); stroke-linecap: round; transition: stroke-dashoffset .25s linear; }
+  .ring b {
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    font-weight: 900; font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .timer.low .bar { stroke: var(--alert); }
+  .timer.low b { color: var(--alert); }
+  .timer.over b { font-size: .95rem; }
+  #question {
+    margin: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 2.8vw, 2.1rem);
+    line-height: 1.7;
+    overflow-wrap: anywhere;
+    text-wrap: pretty;
+  }
+  #question.hint { color: var(--cream-dim); font-weight: 500; font-size: 1.25rem; }
+  .ghost {
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--gold);
+    background: transparent;
+    border: 1.5px solid var(--gold);
+    border-radius: 10px;
+    padding: 8px 20px;
+    cursor: pointer;
+    align-self: flex-start;
+  }
+  .ghost:hover { background: rgba(217, 180, 95, .12); }
+  .ghost[hidden] { display: none; }
+  .info {
+    border-top: 1px solid var(--line);
+    padding-top: 14px;
+  }
+  .info[hidden] { display: none; }
+  .info h2 {
+    margin: 0 0 6px;
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    color: var(--gold);
+  }
+  .info ul { margin: 0; padding: 0 22px 0 0; }
+  .info li { font-weight: 500; font-size: 1.15rem; line-height: 1.7; margin: 4px 0; }
+  .info li::marker { color: var(--gold); }
+  .progress { display: flex; gap: 8px; flex-wrap: wrap; }
+  .progress span {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    font-weight: 700;
+    color: var(--cream-dim);
+    border: 1.5px solid var(--gold);
+  }
+  .progress span.done { background: var(--gold); color: var(--bg); }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 22px;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--cream-dim);
+    font-size: 1.05rem;
+  }
+  .row label { display: inline-flex; gap: 8px; align-items: center; cursor: pointer; }
+  .row input { width: 18px; height: 18px; accent-color: var(--gold); }
+  select {
+    font: inherit;
+    color: var(--cream);
+    background: var(--bg-raise);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 2px 8px;
+  }
+  .link {
+    font: inherit;
+    color: var(--cream);
+    background: none;
+    border: 0;
+    padding: 0;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    cursor: pointer;
+  }
+  details { border-top: 1px solid var(--line); padding-top: 18px; }
+  summary { font-weight: 500; font-size: 1.1rem; cursor: pointer; width: fit-content; color: var(--cream-dim); }
+  .note { color: var(--cream-dim); margin: 10px 0 18px; max-width: 65ch; }
+  .editor { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+  .field { display: flex; gap: 12px; align-items: flex-start; }
+  .field .num {
+    flex: none;
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: var(--bg);
+    background: var(--gold);
+    font-weight: 700;
+  }
+  .field .boxes { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .field small { color: var(--cream-dim); font-size: .9rem; }
+  textarea {
+    width: 100%;
+    font: inherit;
+    font-size: 1rem;
+    color: var(--cream);
+    background: var(--bg-raise);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 10px 14px;
+    resize: vertical;
+    min-height: 80px;
+  }
+  textarea.tall { min-height: 150px; }
+  #confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+  @media (max-width: 880px) {
+    .panel { order: 2; max-width: 600px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #wheel { transition-duration: .6s; }
+    .spinning .bulb, .spinning .pointer, .card.pop { animation: none; }
+  }
+</style>
+</head>
+<body>
+<canvas id="confetti" aria-hidden="true"></canvas>
+<main>
+  <header>
+    <span class="eyebrow">الهوية الرقمية</span>
+    <h1>عجلة الأسئلة</h1>
+  </header>
+
+  <section class="stage">
+    <div class="panel">
+      <div class="card" id="card" aria-live="polite">
+        <div class="card-top">
+          <span class="badge" id="badge">؟</span>
+          <div class="timer" id="timer" hidden>
+            <button class="link" id="timerRestart" type="button">أعيدي المؤقّت</button>
+            <div class="ring">
+              <svg viewBox="0 0 64 64" aria-hidden="true">
+                <circle class="track" cx="32" cy="32" r="28"/>
+                <circle class="bar" id="timerBar" cx="32" cy="32" r="28"/>
+              </svg>
+              <b id="timerNum">60</b>
+            </div>
+          </div>
+        </div>
+        <p id="question" class="hint">لفّي العجلة، والخانة اللي يوقف عندها السهم يطلع سؤالها هنا.</p>
+        <button class="ghost" id="reveal" type="button" hidden>أظهري المعلومة</button>
+        <div class="info" id="info" hidden>
+          <h2>المعلومة</h2>
+          <ul id="infoList"></ul>
+        </div>
+      </div>
+      <button class="spin" id="spin" type="button">لفّي العجلة</button>
+      <div class="row">
+        <div class="progress" id="progress" aria-label="الخانات اللي طلعت"></div>
+        <button class="link" id="reset" type="button">ابدئي من جديد</button>
+      </div>
+      <div class="row">
+        <label for="norepeat"><input type="checkbox" id="norepeat" checked> بدون تكرار</label>
+        <label for="sound"><input type="checkbox" id="sound" checked> الصوت</label>
+        <label for="duration">المؤقّت
+          <select id="duration">
+            <option value="0">بدون</option>
+            <option value="30">30 ثانية</option>
+            <option value="60" selected>60 ثانية</option>
+            <option value="90">90 ثانية</option>
+            <option value="120">دقيقتين</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="wheel-wrap" id="wheelWrap">
+      <svg class="layer" id="rim" viewBox="-116 -116 232 232" aria-hidden="true">
+        <defs>
+          <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#f7e7b0"/>
+            <stop offset=".5" stop-color="#d9b45f"/>
+            <stop offset="1" stop-color="#8c6a1f"/>
+          </linearGradient>
+        </defs>
+        <circle r="108" fill="url(#gold)"/>
+        <circle r="99" fill="#0a1230"/>
+      </svg>
+      <svg class="layer" id="wheel" viewBox="-116 -116 232 232" role="img" aria-label="عجلة من ثماني خانات: ستة أسئلة وخانتا مفاجأة"></svg>
+      <svg class="layer" id="hub" viewBox="-116 -116 232 232" aria-hidden="true" style="pointer-events:none">
+        <defs>
+          <radialGradient id="sheen" cx=".5" cy=".5" r=".5">
+            <stop offset=".55" stop-color="#fff" stop-opacity="0"/>
+            <stop offset="1" stop-color="#000" stop-opacity=".22"/>
+          </radialGradient>
+        </defs>
+        <circle r="97" fill="url(#sheen)"/>
+        <circle r="19" fill="url(#gold)"/>
+        <circle r="13" fill="#0a1230"/>
+        <circle r="9" fill="none" stroke="#d9b45f" stroke-width="1.4" stroke-dasharray="14 5"/>
+        <circle r="5" fill="none" stroke="#d9b45f" stroke-width="1.4" stroke-dasharray="7 4"/>
+        <circle r="1.6" fill="#d9b45f"/>
+      </svg>
+      <svg class="pointer" viewBox="0 0 44 52" aria-hidden="true">
+        <path d="M22 50 L4 14 A18 18 0 1 1 40 14 Z" fill="#f5ecd7" stroke="#9a7424" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="22" cy="15" r="6" fill="#9a7424"/>
+      </svg>
+    </div>
+  </section>
+
+  <details>
+    <summary>تعديل الأسئلة والمعلومات</summary>
+    <p class="note">لكل رقم سؤال ومعلومة (كل سطر في المعلومة يطلع نقطة مستقلة)، والنجمتان خانتا المفاجأة. التعديل ينحفظ في هذا المتصفح فقط، وما يظهر لغيرك إذا شاركتي الرابط.</p>
+    <div class="editor" id="editor"></div>
+  </details>
+</main>
+
+<script>
+(function () {
+  var ORDER = ["5", "6", "s1", "1", "2", "3", "4", "s2"];   // clockwise from the top
+  var STEP = 360 / ORDER.length;
+  var DEFAULTS = {
+    q: {
+      "1": "ما مفهومك للهوية الرقمية؟",
+      "2": "ما الجرائم التي تتوقعين ارتباطها بالهوية الرقمية؟",
+      "3": "ما هي البيانات أو المعلومات الموجودة على الإنترنت التي يمكن أن ترتبط بشخصيتك الرقمية؟",
+      "4": "برأيك هل يمكن لشخص أن يعرف الكثير عنك من خلال آثارك الرقمية دون أن تتحدثي معه مباشرة؟",
+      "5": "برأيك ما هي البيانات التي يستهدفها المنتحل لهويتك الرقمية؟",
+      "6": "برأيك ما الطرق التي يمكنك اتباعها لحماية هويتك الرقمية من الاختراق والاستيلاء عليها؟",
+      "s1": "مفاجأة! اختاري وحدة من الحاضرات تلفّ العجلة وتجاوب بدالك.",
+      "s2": "تحدّي! قولي نصيحة وحدة لحماية الهوية الرقمية ما انذكرت قبل."
+    },
+    info: {
+      "1": "الهوية الرقمية هي مجموعة البيانات التي تعرّف بالشخص في العالم الرقمي وتميّزه عن غيره.\nتشمل بيانات الدخول والحسابات والسمات الحيوية مثل بصمة الوجه والإصبع.\nمنها الهوية الرسمية الموثّقة التي تُستخدم للدخول على الخدمات الحكومية.",
+      "2": "انتحال الشخصية واستخدام بيانات الغير.\nالاحتيال المالي والتصيّد الإلكتروني.\nاختراق الحسابات والدخول غير المشروع إلى البيانات.\nالابتزاز والتشهير.\nكثير منها مجرَّم في نظام مكافحة الجرائم المعلوماتية.",
+      "3": "الاسم والصور الشخصية.\nرقم الجوال والبريد الإلكتروني.\nحسابات التواصل الاجتماعي وما يُنشر فيها.\nالموقع الجغرافي وأماكن التواجد.\nسجل التصفح والمشتريات.",
+      "4": "نعم، الآثار الرقمية تكشف الكثير دون أي تواصل مباشر.\nالمنشورات والإعجابات تبيّن الاهتمامات والآراء.\nالصور ومواقعها تبيّن أماكن السكن والدراسة والعمل والروتين اليومي.\nقوائم المتابعة تبيّن العلاقات والمعارف.",
+      "5": "رقم الهوية الوطنية وتاريخ الميلاد.\nكلمات المرور ورموز التحقق.\nالبيانات البنكية وأرقام البطاقات.\nرقم الجوال والبريد الإلكتروني.\nالصور الشخصية.",
+      "6": "كلمة مرور قوية ومختلفة لكل حساب.\nتفعيل التحقق بخطوتين.\nعدم مشاركة رمز التحقق مع أي أحد.\nالحذر من الروابط والرسائل المجهولة.\nضبط إعدادات الخصوصية وتقليل ما يُنشر.\nتحديث الأجهزة والتطبيقات، والتبليغ عند الاشتباه."
+    }
+  };
+  var KEY = "question-wheel-v4";
+  var NS = "http://www.w3.org/2000/svg";
+  var HINT = "لفّي العجلة، والخانة اللي يوقف عندها السهم يطلع سؤالها هنا.";
+  function $(id) { return document.getElementById(id); }
+
+  var wheel = $("wheel"), rim = $("rim"), wrap = $("wheelWrap"), spinBtn = $("spin");
+  var card = $("card"), badge = $("badge"), questionEl = $("question");
+  var revealBtn = $("reveal"), infoBox = $("info"), infoList = $("infoList");
+  var timerBox = $("timer"), timerBar = $("timerBar"), timerNum = $("timerNum"), timerRestart = $("timerRestart");
+  var noRepeat = $("norepeat"), soundBox = $("sound"), durationSel = $("duration");
+  var resetBtn = $("reset"), editor = $("editor"), progress = $("progress");
+  var reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  var data = { q: {}, info: {} };
+  Object.keys(DEFAULTS.q).forEach(function (k) { data.q[k] = DEFAULTS.q[k]; });
+  Object.keys(DEFAULTS.info).forEach(function (k) { data.info[k] = DEFAULTS.info[k]; });
+  try {
+    var saved = JSON.parse(localStorage.getItem(KEY) || "null");
+    if (saved) {
+      ["q", "info"].forEach(function (part) {
+        if (saved[part]) Object.keys(data[part]).forEach(function (k) {
+          if (typeof saved[part][k] === "string") data[part][k] = saved[part][k];
+        });
+      });
+      if (typeof saved.duration === "number") durationSel.value = String(saved.duration);
+      if (typeof saved.sound === "boolean") soundBox.checked = saved.sound;
+    }
+  } catch (e) {}
+  function save() {
+    try {
+      localStorage.setItem(KEY, JSON.stringify({ q: data.q, info: data.info, duration: +durationSel.value, sound: soundBox.checked }));
+    } catch (e) {}
+  }
+  function isSurprise(id) { return id.charAt(0) === "s"; }
+  function label(id) { return isSurprise(id) ? "★" : id; }
+
+  function xy(r, deg) { var a = deg * Math.PI / 180; return [r * Math.sin(a), -r * Math.cos(a)]; }
+  function pt(r, deg) { var p = xy(r, deg); return p[0].toFixed(3) + " " + p[1].toFixed(3); }
+
+  for (var b = 0; b < 24; b++) {
+    var c = document.createElementNS(NS, "circle");
+    var p = xy(103.5, b * 15);
+    c.setAttribute("cx", p[0].toFixed(3));
+    c.setAttribute("cy", p[1].toFixed(3));
+    c.setAttribute("r", "2.6");
+    c.setAttribute("class", b % 2 ? "bulb b" : "bulb");
+    rim.appendChild(c);
+  }
+
+  var slices = {}, chips = {};
+  ORDER.forEach(function (id, k) {
+    var mid = k * STEP, half = STEP / 2;
+    var fill, ink;
+    if (isSurprise(id)) { fill = "url(#gold)"; ink = "#0a1230"; }
+    else if (+id % 2) { fill = "var(--emerald)"; ink = "#d9b45f"; }
+    else { fill = "var(--ivory)"; ink = "#182a63"; }
+    var g = document.createElementNS(NS, "g");
+    var path = document.createElementNS(NS, "path");
+    path.setAttribute("d", "M0 0 L" + pt(97, mid - half) + " A97 97 0 0 1 " + pt(97, mid + half) + " Z");
+    path.setAttribute("fill", fill);
+    path.setAttribute("stroke", "#d9b45f");
+    path.setAttribute("stroke-width", "1.2");
+    var t = document.createElementNS(NS, "text");
+    var q = xy(70, mid);
+    t.setAttribute("x", q[0].toFixed(3));
+    t.setAttribute("y", q[1].toFixed(3));
+    t.setAttribute("text-anchor", "middle");
+    t.setAttribute("dominant-baseline", "central");
+    t.setAttribute("transform", "rotate(" + mid + " " + q[0].toFixed(3) + " " + q[1].toFixed(3) + ")");
+    t.setAttribute("fill", ink);
+    t.textContent = label(id);
+    g.appendChild(path);
+    g.appendChild(t);
+    wheel.appendChild(g);
+    slices[id] = g;
+  });
+
+  ["1", "2", "3", "4", "5", "6", "s1", "s2"].forEach(function (id) {
+    var chip = document.createElement("span");
+    chip.textContent = label(id);
+    progress.appendChild(chip);
+    chips[id] = chip;
+
+    var row = document.createElement("div");
+    row.className = "field";
+    var dot = document.createElement("label");
+    dot.className = "num";
+    dot.htmlFor = "q-" + id;
+    dot.textContent = label(id);
+    var boxes = document.createElement("div");
+    boxes.className = "boxes";
+    var ta = document.createElement("textarea");
+    ta.id = "q-" + id;
+    ta.value = data.q[id];
+    ta.setAttribute("aria-label", isSurprise(id) ? "نص المفاجأة" : "السؤال " + id);
+    ta.addEventListener("input", function () { data.q[id] = ta.value; save(); });
+    boxes.appendChild(ta);
+    if (!isSurprise(id)) {
+      var cap = document.createElement("small");
+      cap.textContent = "المعلومة";
+      var ti = document.createElement("textarea");
+      ti.id = "i-" + id;
+      ti.className = "tall";
+      ti.value = data.info[id];
+      ti.setAttribute("aria-label", "معلومة السؤال " + id);
+      ti.addEventListener("input", function () { data.info[id] = ti.value; save(); });
+      boxes.appendChild(cap);
+      boxes.appendChild(ti);
+    }
+    row.appendChild(dot);
+    row.appendChild(boxes);
+    editor.appendChild(row);
+  });
+
+  /* ---------- sound ---------- */
+  var ac = null;
+  function audio() {
+    if (!soundBox.checked) return null;
+    try {
+      if (!ac) { var AC = window.AudioContext || window.webkitAudioContext; if (AC) ac = new AC(); }
+      if (ac && ac.state === "suspended") ac.resume();
+    } catch (e) { ac = null; }
+    return ac;
+  }
+  function tone(freq, start, len, type, vol) {
+    var a = audio(); if (!a) return;
+    try {
+      var o = a.createOscillator(), g = a.createGain();
+      o.type = type || "sine";
+      o.frequency.value = freq;
+      var t0 = a.currentTime + (start || 0);
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(vol || .2, t0 + .01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + len);
+      o.connect(g); g.connect(a.destination);
+      o.start(t0); o.stop(t0 + len + .02);
+    } catch (e) {}
+  }
+  function sTick() { tone(1500, 0, .04, "triangle", .12); }
+  function sWin() { tone(659, 0, .18); tone(784, .13, .18); tone(1047, .26, .4); }
+  function sSurprise() { tone(523, 0, .14); tone(659, .1, .14); tone(784, .2, .14); tone(1047, .3, .14); tone(1319, .4, .5); }
+  function sBeep() { tone(880, 0, .12, "sine", .18); }
+  function sEnd() { tone(330, 0, .35, "square", .12); tone(262, .3, .6, "square", .12); }
+
+  /* ---------- timer ---------- */
+  var CIRC = 2 * Math.PI * 28;
+  timerBar.setAttribute("stroke-dasharray", CIRC.toFixed(2));
+  var tInt = null, tEnd = 0, tDur = 0, tLast = -1;
+  function stopTimer() { clearInterval(tInt); tInt = null; }
+  function hideTimer() { stopTimer(); timerBox.hidden = true; }
+  function drawTimer(rem) {
+    timerBar.setAttribute("stroke-dashoffset", (CIRC * (1 - Math.max(0, rem) / tDur)).toFixed(2));
+  }
+  function startTimer() {
+    stopTimer();
+    tDur = +durationSel.value;
+    if (!tDur) { timerBox.hidden = true; return; }
+    timerBox.hidden = false;
+    timerBox.className = "timer";
+    tEnd = Date.now() + tDur * 1000;
+    tLast = tDur;
+    timerNum.textContent = tDur;
+    drawTimer(tDur);
+    tInt = setInterval(function () {
+      var left = (tEnd - Date.now()) / 1000;
+      var sec = Math.ceil(left);
+      drawTimer(left);
+      if (sec !== tLast) {
+        tLast = sec;
+        if (sec > 0) {
+          timerNum.textContent = sec;
+          if (sec <= 5) { timerBox.className = "timer low"; sBeep(); }
+        }
+      }
+      if (left <= 0) {
+        stopTimer();
+        timerBox.className = "timer low over";
+        timerNum.textContent = "انتهى";
+        sEnd();
+      }
+    }, 200);
+  }
+
+  /* ---------- game ---------- */
+  var rot = 0, spinning = false, used = [], timer = null, current = null, tickRaf = null;
+
+  function clearCard() {
+    hideTimer();
+    revealBtn.hidden = true;
+    infoBox.hidden = true;
+    infoList.textContent = "";
+  }
+  function show(id) {
+    current = id;
+    badge.textContent = label(id);
+    var q = (data.q[id] || "").trim();
+    questionEl.textContent = q || "ما فيه نص مكتوب لهذي الخانة. اكتبيه من «تعديل الأسئلة والمعلومات» تحت.";
+    questionEl.className = q ? "" : "hint";
+    if (!isSurprise(id)) {
+      revealBtn.hidden = !(data.info[id] || "").trim();
+      startTimer();
+    }
+    card.classList.remove("pop");
+    void card.offsetWidth;
+    card.classList.add("pop");
+  }
+  function reveal() {
+    if (!current || isSurprise(current)) return;
+    stopTimer();
+    infoList.textContent = "";
+    (data.info[current] || "").split("\n").forEach(function (line) {
+      line = line.trim();
+      if (!line) return;
+      var li = document.createElement("li");
+      li.textContent = line;
+      infoList.appendChild(li);
+    });
+    infoBox.hidden = false;
+    revealBtn.hidden = true;
+  }
+
+  function watchTicks() {
+    var last = null;
+    (function loop() {
+      if (!spinning) return;
+      var m = getComputedStyle(wheel).transform;
+      if (m && m !== "none") {
+        var v = m.replace(/[^0-9\-.,e]/g, "").split(",");
+        var ang = Math.atan2(parseFloat(v[1]), parseFloat(v[0])) * 180 / Math.PI;
+        var sector = Math.floor(((ang + STEP / 2) % 360 + 360) % 360 / STEP);
+        if (last !== null && sector !== last) sTick();
+        last = sector;
+      }
+      tickRaf = requestAnimationFrame(loop);
+    })();
+  }
+
+  function finish(id) {
+    if (!spinning) return;
+    spinning = false;
+    clearTimeout(timer);
+    cancelAnimationFrame(tickRaf);
+    wrap.classList.remove("spinning");
+    spinBtn.disabled = false;
+    chips[id].className = "done";
+    if (noRepeat.checked) {
+      used.push(id);
+      slices[id].setAttribute("class", "used");
+    }
+    show(id);
+    if (isSurprise(id)) sSurprise(); else sWin();
+    confetti(isSurprise(id) ? 220 : 120);
+  }
+
+  function spin() {
+    if (spinning) return;
+    audio();
+    var pool = ORDER.filter(function (n) { return !noRepeat.checked || used.indexOf(n) === -1; });
+    if (!pool.length) { clearUsed(); pool = ORDER.slice(); }
+    var id = pool[Math.floor(Math.random() * pool.length)];
+    var k = ORDER.indexOf(id);
+    var wobble = (Math.random() - .5) * (STEP - 14);
+    var target = ((360 - k * STEP + wobble) % 360 + 360) % 360;
+    var now = ((rot % 360) + 360) % 360;
+    var delta = target - now;
+    if (delta < 0) delta += 360;
+    rot += 360 * 6 + delta;
+    spinning = true;
+    current = null;
+    spinBtn.disabled = true;
+    wrap.classList.add("spinning");
+    clearCard();
+    badge.textContent = "…";
+    questionEl.textContent = "العجلة تدور";
+    questionEl.className = "hint";
+    wheel.style.transform = "rotate(" + rot + "deg)";
+    var done = function () { finish(id); };
+    wheel.addEventListener("transitionend", done, { once: true });
+    timer = setTimeout(done, 5600);
+    watchTicks();
+  }
+
+  function clearUsed() {
+    used = [];
+    ORDER.forEach(function (n) { slices[n].removeAttribute("class"); chips[n].className = ""; });
+  }
+
+  spinBtn.addEventListener("click", spin);
+  wheel.addEventListener("click", spin);
+  revealBtn.addEventListener("click", reveal);
+  timerRestart.addEventListener("click", function () { if (current && !isSurprise(current)) { audio(); startTimer(); } });
+  resetBtn.addEventListener("click", function () {
+    if (spinning) return;
+    clearUsed();
+    clearCard();
+    current = null;
+    badge.textContent = "؟";
+    questionEl.textContent = HINT;
+    questionEl.className = "hint";
+  });
+  noRepeat.addEventListener("change", function () {
+    if (!noRepeat.checked) { used = []; ORDER.forEach(function (n) { slices[n].removeAttribute("class"); }); }
+  });
+  soundBox.addEventListener("change", save);
+  durationSel.addEventListener("change", save);
+
+  /* ---------- confetti ---------- */
+  var cv = $("confetti");
+  var ctx = cv.getContext("2d");
+  var HEX = ["#d9b45f", "#f7e7b0", "#9a7424", "#efe3c4", "#d9b45f", "#fff8e1", "#b88e39"];
+  var parts = [], raf = null;
+  function confetti(count) {
+    if (reduced || !ctx) return;
+    cv.width = window.innerWidth;
+    cv.height = window.innerHeight;
+    for (var j = 0; j < count; j++) {
+      parts.push({
+        x: cv.width / 2 + (Math.random() - .5) * cv.width * .5,
+        y: cv.height * .35,
+        vx: (Math.random() - .5) * 14,
+        vy: -Math.random() * 13 - 3,
+        s: Math.random() * 7 + 5,
+        r: Math.random() * 6.28,
+        vr: (Math.random() - .5) * .4,
+        c: HEX[j % HEX.length],
+        life: 0
+      });
+    }
+    if (!raf) raf = requestAnimationFrame(step);
+  }
+  function step() {
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    parts = parts.filter(function (p) { return p.life < 150 && p.y < cv.height + 20; });
+    parts.forEach(function (p) {
+      p.vy += .32; p.vx *= .99;
+      p.x += p.vx; p.y += p.vy; p.r += p.vr; p.life++;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - p.life / 150);
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.r);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2);
+      ctx.restore();
+    });
+    if (parts.length) raf = requestAnimationFrame(step);
+    else { raf = null; ctx.clearRect(0, 0, cv.width, cv.height); }
+  }
+})();
+</script>
+</body>
+</html>
